@@ -1,11 +1,11 @@
 #include "colors.inc"
 background { LightBlue }
 camera {
-  location <1, 1 1>
-  look_at <0, 0, 1> 
+  location <1, 0.3, 1>
+  look_at <1, 0.3, 2> 
   angle 36
 }
-light_source { <100, 500, -1000> White } 
+light_source { <0, 1, 0> White parallel} 
 
 height_field{
       png
@@ -16,13 +16,14 @@ height_field{
     {
 pigment
     {
-        image_map
+    	Gray
+       /* image_map
         {
             png "map.png"
-        }
+        }*/
     }
     }
-  scale <4,0.1,4>
+  scale <10,0.5,10>
     }
 
 sky_sphere {
