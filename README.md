@@ -7,6 +7,7 @@ Repository for a povray film project in fulfillment of the demands of the IVC mo
 - bird flocking behaviour
 
 ## Models
+- nice skybox
 - terrain (height field)
 - tree(s)
 - bird
