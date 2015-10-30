@@ -37,7 +37,7 @@ public class BirdTarget : MonoBehaviour {
 		
 		for (int i = 0; i < _flockSize; i++) {
 			Vector3 position = transform.position;
-			position.x += Random.Range (-.2f, .2f);
+			position.x += Random.Range (-5f, 5f);
 			position.y += Random.Range (-5f, 5f);
 			position.z += Random.Range (-5f, 5f);
 			GameObject newBird = (GameObject)Instantiate (_birdPrefab, position, transform.rotation);
