@@ -136,7 +136,10 @@ public class BirdBehaviour : MonoBehaviour {
 			_lastTime = Time.time;
 		}
 
-		transform.position += _currentDir * _speed * Time.fixedDeltaTime;
-		transform.LookAt (transform.position + _currentDir);
+		var interpolatedDir = Vector3.Lerp (transform.forward,
+		                                    _currentDir,
+		                                    Time.fixedDeltaTime * Random.Range (0.1f, 10f));
+		transform.LookAt (transform.position + interpolatedDir);
+		transform.position += transform.forward * _speed * Time.fixedDeltaTime;
 	}
 }
