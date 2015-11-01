@@ -3,18 +3,25 @@ using System.Collections.Generic;
 
 public class BirdBehaviour : MonoBehaviour {
 	private float _lastTime = 0;
-	private float _speed;
 	private Vector3 _currentDir;
-
-	private GameObject _target = null;
-	public GameObject Target { get { return _target; } set { _target = value; } }
 	private GameObject[] _birds;
+
 	private BirdTarget _birdTarget;
+	private GameObject _target = null;
+	public GameObject Target {
+		get { return _target; } 
+		set {
+			_target = value;
+			_birdTarget = _target.GetComponent<BirdTarget> ();
+			_currentDir = _birdTarget.CurrentDir;
+		}
+	}
 
 	GameObject FindNearestBird () {
 		GameObject nearestBird = null;
 		float lastDistance = float.PositiveInfinity;
 
+		// Yeah, brute force!
 		foreach (GameObject bird in _birds) {
 			if (bird != gameObject) {
 				float distance = (gameObject.transform.position - bird.transform.position).sqrMagnitude;
@@ -58,7 +65,7 @@ public class BirdBehaviour : MonoBehaviour {
 	}
 
 	void ApplyBirdBrain () {
-		// http://www.lalena.com/AI/Flock/
+		// Rule reference: http://www.lalena.com/AI/Flock/
 		// Separation: Steer to avoid crowding birds of the same color.
 		// Alignment: Steer towards the average heading of birds of the same color.
 		// Cohesion: Steer to move toward the average position of birds of the same color.
@@ -69,43 +76,40 @@ public class BirdBehaviour : MonoBehaviour {
 		// 4. Combine directions
 		// 5. Fly towards new direction
 
-		// TODO Small optimization: instead of using Vector3.magnitude here, square user-defined distance values.
-
 		Vector3 avgHeading = FindAverageHeading ();
 		Vector3 avgPosition = FindAveragePosition ();
 		GameObject nearestBird = FindNearestBird ();
 
 		// Separation
 		Vector3 weightedSeparationDir = Vector3.zero;
-		float distanceToNearest = (nearestBird.transform.position - transform.position).magnitude;
-		if (distanceToNearest < _birdTarget.MinDistance) {
+		float sqrDistanceToNearest = (nearestBird.transform.position - transform.position).sqrMagnitude;
+		if (sqrDistanceToNearest < _birdTarget.SqrMinDistance) {
 			// Flee straight away from the nearest bird, but scale that direction by how much our MinDistance was
 			// severed.
 			weightedSeparationDir = (transform.position - nearestBird.transform.position).normalized
-				* distanceToNearest / _birdTarget.MinDistance;
+				* sqrDistanceToNearest / _birdTarget.SqrMinDistance;
 		}
 
 		// Alignment
 		float dirDeviation = Vector3.Angle (transform.forward, avgHeading);
-		// Fiddle with this.
-		Vector3 weightedAlignedDir = avgHeading * dirDeviation / 90f;
+		Vector3 weightedAlignedDir = avgHeading * dirDeviation / 90f; // TODO Fiddle with this
 
 		// Cohesion
 		// Same algorithm as separation!
 		Vector3 weightedCohesionDir = Vector3.zero;
-		float distanceFromFlock = (transform.position - avgPosition).magnitude;
-		if (distanceFromFlock > _birdTarget.MaxDistance) {
+		float sqrDistanceFromFlock = (transform.position - avgPosition).sqrMagnitude;
+		if (sqrDistanceFromFlock > _birdTarget.SqrMaxDistance) {
 			weightedCohesionDir = (avgPosition - transform.position).normalized
-				* distanceFromFlock / _birdTarget.MaxDistance;
+				* sqrDistanceFromFlock / _birdTarget.SqrMaxDistance;
 		}
 
 		// Fellowship
 		// Same algorithm as separation/cohesion!
 		Vector3 weightedFellowshipDir = Vector3.zero;
-		float distanceFromTarget = (transform.position - _birdTarget.transform.position).magnitude;
-		if (distanceFromTarget > _birdTarget.MaxDistance) {
+		float sqrDistanceFromTarget = (transform.position - _birdTarget.transform.position).sqrMagnitude;
+		if (sqrDistanceFromTarget > _birdTarget.SqrMaxDistance) {
 			weightedFellowshipDir = (_birdTarget.transform.position - transform.position).normalized
-				* distanceFromTarget / _birdTarget.MaxDistance;
+				* sqrDistanceFromTarget / _birdTarget.SqrMaxDistance;
 		}
 
 //		Vector3 weightedCompanionCube //... Wait. No.
@@ -117,9 +121,6 @@ public class BirdBehaviour : MonoBehaviour {
 
 	void Start () {
 		_lastTime = Time.time;
-		_birdTarget = _target.GetComponent<BirdTarget> ();
-		_currentDir = _birdTarget.CurrentDir;
-		_speed = _birdTarget.Speed;
 		
 		_birds = GameObject.FindGameObjectsWithTag ("Bird");
 		if (_birds.Length < 1) {
@@ -140,6 +141,6 @@ public class BirdBehaviour : MonoBehaviour {
 		                                    _currentDir,
 		                                    Time.fixedDeltaTime * Random.Range (0.1f, 10f));
 		transform.LookAt (transform.position + interpolatedDir);
-		transform.position += transform.forward * _speed * Time.fixedDeltaTime;
+		transform.position += transform.forward * _birdTarget.Speed * Time.fixedDeltaTime;
 	}
 }
