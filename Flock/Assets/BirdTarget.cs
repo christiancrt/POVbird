@@ -5,7 +5,7 @@ public class BirdTarget : MonoBehaviour {
 	[SerializeField] private int _flockSize = 5;
 	[SerializeField] private GameObject _birdPrefab;
 	[SerializeField] private Vector3[] _path;
-	[SerializeField] private float _sqrPositionEps = 0.2f; // Squared threshold for checking if we reached a node.
+	[SerializeField] private float _sqrPositionEps = 0.001f; // Squared threshold for checking if we reached a node.
 	private int _targetNode = 0;
 
 	public Vector3[] Path { get { return _path; }}
@@ -19,6 +19,8 @@ public class BirdTarget : MonoBehaviour {
 	
 	// Flock properties
 	public float DirChangeDeltaTime = 1.0f; // Time after which random direction changes should occur
+
+	public float RecordingTime = 10.0f; // Defines for how long transform data should be written.
 
 	[SerializeField] private float _SqrMinDistance = 1.0f;
 	public float SqrMinDistance {
@@ -59,7 +61,7 @@ public class BirdTarget : MonoBehaviour {
 			throw new UnityException ("Not enough path nodes!");
 		}
 
-		transform.position = _path[0];
+		transform.position = _path[_targetNode];
 		TargetNextNode ();
 		CreateFlock ();
 	}
@@ -68,6 +70,6 @@ public class BirdTarget : MonoBehaviour {
 		if ((_path[_targetNode] - transform.position).sqrMagnitude < _sqrPositionEps) {
 			TargetNextNode ();
 		}
-		transform.position += CurrentDir * Speed * Time.fixedDeltaTime;
+		transform.position += _currentDir * Speed * Time.fixedDeltaTime;
 	}
 }

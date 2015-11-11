@@ -1,8 +1,9 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
+using System.IO;
 
 public class BirdBehaviour : MonoBehaviour {
-	private float _lastTime = 0;
+	private float _lastTime = float.NegativeInfinity;
 	private Vector3 _currentDir;
 	private GameObject[] _birds;
 
@@ -44,9 +45,9 @@ public class BirdBehaviour : MonoBehaviour {
 		}
 
 		// Calculate mean vector
-		avgHeading.x = avgHeading.x / _birds.Length;
-		avgHeading.y = avgHeading.y / _birds.Length;
-		avgHeading.z = avgHeading.z / _birds.Length;
+		avgHeading.x /= _birds.Length;
+		avgHeading.y /= _birds.Length;
+		avgHeading.z /= _birds.Length;
 		return avgHeading.normalized;
 	}
 
@@ -58,9 +59,9 @@ public class BirdBehaviour : MonoBehaviour {
 		}
 		
 		// Calculate mean vector
-		avgPosition.x = avgPosition.x / _birds.Length;
-		avgPosition.y = avgPosition.y / _birds.Length;
-		avgPosition.z = avgPosition.z / _birds.Length;
+		avgPosition.x /= _birds.Length;
+		avgPosition.y /= _birds.Length;
+		avgPosition.z /= _birds.Length;
 		return avgPosition;
 	}
 
@@ -119,27 +120,69 @@ public class BirdBehaviour : MonoBehaviour {
 		               + weightedFellowshipDir).normalized;
 	}
 
+	string Vec3ToPov (Vector3 v) {
+		return "<" + v.x + ", " + v.y + ", " + v.z + ">";
+	}
+
+	void InitPovFile () {
+		if (File.Exists (@"../flock.pov")) {
+			File.Delete (@"../flock.pov");
+		}
+
+		string clockString = "// clock * recordingTime + startTime\n"
+			  + "#declare birdRecClock = clock * " + _birdTarget.RecordingTime + " + " + Time.fixedTime + ";\n";
+		System.IO.File.WriteAllText (@"../flock.pov", clockString); // We can assume the file doesn't exist...
+	}
+
+	void PrintPovData () {
+		string povPosition = Vec3ToPov(transform.position);
+		string povDirSpeed = Vec3ToPov(transform.forward * _birdTarget.Speed * Time.fixedDeltaTime);
+
+		// (birdRecClock - startTime) / (endTime - startTime)
+		float startTime = _lastTime;
+		float endTime = Time.fixedTime;
+
+		string povString = "#if (birdRecClock >= " + startTime + " & birdRecClock < " + endTime + ")\n"
+			+ "sphere {\n"
+			+ "\t" + povPosition + " + (" + povDirSpeed + " * (birdRecClock - " + startTime + ") / " + (endTime - startTime) + ") .5\n"
+			+ "	pigment {\n"
+			+ "		rgb <1, 0, 0>\n"
+			+ "	}\n"
+			+ "}\n"
+		    + "#end\n";
+
+		// The file must exist at this point
+		using (System.IO.StreamWriter file = new System.IO.StreamWriter(@"../flock.pov", true)) {
+			file.WriteLine(povString);
+		}
+	}
+
 	void Start () {
-		_lastTime = Time.time;
+		_lastTime = Time.fixedTime;
 		
 		_birds = GameObject.FindGameObjectsWithTag ("Bird");
 		if (_birds.Length < 1) {
 			throw new UnityException ("No birds found! Noes!");
 		}
+
+		InitPovFile ();
 	}
 
 	void FixedUpdate () {
 		// Make direction changes a little more asynchronous
 		var offset = Random.Range (-0.5f * _birdTarget.DirChangeDeltaTime, 0.5f * _birdTarget.DirChangeDeltaTime);
-		if (Time.time - _lastTime > _birdTarget.DirChangeDeltaTime + offset) {
-			_currentDir = _birdTarget.CurrentDir;
+		if (Time.fixedTime - _lastTime > _birdTarget.DirChangeDeltaTime) {// + offset) {
+//			_currentDir = _birdTarget.CurrentDir;
 			ApplyBirdBrain ();
-			_lastTime = Time.time;
+			if (_lastTime < _birdTarget.RecordingTime)
+				PrintPovData ();
+			_lastTime = Time.fixedTime;
 		}
 
-		var interpolatedDir = Vector3.Lerp (transform.forward,
-		                                    _currentDir,
-		                                    Time.fixedDeltaTime * Random.Range (0.1f, 10f));
+//		var interpolatedDir = Vector3.Lerp (transform.forward,
+//		                                    _currentDir,
+//		                                    Time.fixedDeltaTime * Random.Range (0.1f, 10f));
+		var interpolatedDir = _currentDir;
 		transform.LookAt (transform.position + interpolatedDir);
 		transform.position += transform.forward * _birdTarget.Speed * Time.fixedDeltaTime;
 	}
