@@ -1,4 +1,5 @@
 #include "colors.inc"
+#include "textures.inc"
 background { LightBlue }
 camera {
   location <1, 0.3, 1>
@@ -11,24 +12,13 @@ height_field{
       png
       "map.png"
       smooth
-        //pigment { Gray } 
-        texture
-    {
-pigment
-    {
-    	Gray
-       /* image_map
-        {
-            png "map.png"
-        }*/
-    }
-    }
+        texture{ Polished_Chrome }
   scale <10,0.5,10>
     }
 
 sky_sphere {
     pigment {
-      image_map{ jpeg "early_in_the_morning_city_light_sky_sleep_3840x1080_hd-wallpaper-243496"
+      image_map{ png "skysphere.png"
                 map_type 0    // planar
                 interpolate 2 // bilinear
                 once //
