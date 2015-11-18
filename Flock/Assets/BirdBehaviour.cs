@@ -18,6 +18,9 @@ public class BirdBehaviour : MonoBehaviour {
 		}
 	}
 
+	// Used to desynchronize the bird flapping clock in povray.
+	private float flapOffset = Random.value;
+
 	GameObject FindNearestBird () {
 		GameObject nearestBird = null;
 		float lastDistance = float.PositiveInfinity;
@@ -93,7 +96,7 @@ public class BirdBehaviour : MonoBehaviour {
 
 		// Alignment
 		float dirDeviation = Vector3.Angle (transform.forward, avgHeading);
-		Vector3 weightedAlignedDir = avgHeading * dirDeviation / 90f; // TODO Fiddle with this
+		Vector3 weightedAlignedDir = avgHeading * dirDeviation / 180f; // TODO Fiddle with this
 
 		// Cohesion
 		// Same algorithm as separation!
@@ -130,25 +133,31 @@ public class BirdBehaviour : MonoBehaviour {
 		}
 
 		string clockString = "// clock * recordingTime + startTime\n"
-			  + "#declare birdRecClock = clock * " + _birdTarget.RecordingTime + " + " + Time.fixedTime + ";\n";
+			  + "#declare flockClock = clock * " + _birdTarget.RecordingTime + " + " + Time.fixedTime + ";\n";
+		clockString += "#include \"bird.pov\"\n";
 		System.IO.File.WriteAllText (@"../flock.pov", clockString); // We can assume the file doesn't exist...
 	}
 
 	void PrintPovData () {
-		string povPosition = Vec3ToPov(transform.position);
-		string povDirSpeed = Vec3ToPov(transform.forward * _birdTarget.Speed * Time.fixedDeltaTime);
+		string povPosition = Vec3ToPov (transform.position);
+		string povDirSpeed = Vec3ToPov (transform.forward * _birdTarget.Speed * Time.fixedDeltaTime);
+		string povRotation = Vec3ToPov (transform.rotation.eulerAngles);
 
 		// (birdRecClock - startTime) / (endTime - startTime)
 		float startTime = _lastTime;
 		float endTime = Time.fixedTime;
 
-		string povString = "#if (birdRecClock >= " + startTime + " & birdRecClock < " + endTime + ")\n"
-			+ "sphere {\n"
-			+ "\t" + povPosition + " + (" + povDirSpeed + " * (birdRecClock - " + startTime + ") / " + (endTime - startTime) + ") .5\n"
-			+ "	pigment {\n"
-			+ "		rgb <1, 0, 0>\n"
-			+ "	}\n"
+		string povString = "#if (flockClock >= " + startTime + " & flockClock < " + endTime + ")\n"
+			+ "#declare tmp = birdClock;\n"
+			+ "#declare birdClock = birdClock + " + flapOffset + ";\n"
+			+ "object {\n"
+			+ "\tbird\n"
+			+ "\trotate " + povRotation + "\n"
+			+ "\ttranslate " + povPosition 
+				+ " + (" + povDirSpeed + " * (flockClock - " + startTime + ") / " + (endTime - startTime) + ")\n"
+			+ "\tpigment { birdColor }\n"
 			+ "}\n"
+			+ "#declare birdClock = tmp;"
 		    + "#end\n";
 
 		// The file must exist at this point
@@ -165,6 +174,8 @@ public class BirdBehaviour : MonoBehaviour {
 			throw new UnityException ("No birds found! Noes!");
 		}
 
+		// TODO Noes! This runs for *every* bird, therefore the file is initialized over and over len(birds) times.
+		// This should probably be done by BirdTarget.
 		InitPovFile ();
 	}
 
