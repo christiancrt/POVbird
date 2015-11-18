@@ -21,6 +21,7 @@ public class BirdTarget : MonoBehaviour {
 	public float DirChangeDeltaTime = 1.0f; // Time after which random direction changes should occur
 
 	public float RecordingTime = 10.0f; // Defines for how long transform data should be written.
+	public float RecordedTime = 0f;
 
 	[SerializeField] private float _SqrMinDistance = 1.0f;
 	public float SqrMinDistance {
@@ -70,6 +71,8 @@ public class BirdTarget : MonoBehaviour {
 		if ((_path[_targetNode] - transform.position).sqrMagnitude < _sqrPositionEps) {
 			TargetNextNode ();
 		}
+		transform.LookAt (transform.position + _currentDir);
 		transform.position += _currentDir * Speed * Time.fixedDeltaTime;
+		RecordedTime = Time.fixedTime;
 	}
 }
